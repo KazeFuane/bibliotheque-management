@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Assistant</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 720px;
+      height: 90vh;
+      max-height: 800px;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e5e5e3;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    #header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #e5e5e3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #e8f0fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #avatar svg {
+      width: 17px;
+      height: 17px;
+      color: #3b5bdb;
+    }
+
+    #header-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1c1c1a;
+    }
+
+    #header-sub {
+      font-size: 12px;
+      color: #888;
+    }
+
+    #clear-btn {
+      font-size: 12px;
+      color: #666;
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 5px 12px;
+      cursor: pointer;
+    }
+
+    #clear-btn:hover {
+      background: #f5f5f4;
+    }
+
+    /* API key banner */
+    #api-banner {
+      background: #fff8e1;
+      border-bottom: 1px solid #ffe082;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: #7a5c00;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #api-banner.hidden {
+      display: none;
+    }
+
+    #api-banner select {
+      border: 1px solid #ffc107;
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+    }
+
+    #api-banner select:focus {
+      border-color: #ff8f00;
+    }
+
+    #api-banner input {
+      flex: 1;
+      border: 1px solid #ffc107;
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+      font-family: monospace;
+      min-width: 180px;
+    }
+
+    #api-banner input:focus {
+      border-color: #ff8f00;
+    }
+
+    #save-key-btn {
+      background: #ffc107;
+      border: none;
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      color: #4a3800;
+    }
+
+    #save-key-btn:hover {
+      background: #ffb300;
+    }
+
+    /* Messages */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sys-msg {
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    .msg {
+      display: flex;
+      gap: 9px;
+      max-width: 88%;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg.assistant {
+      align-self: flex-start;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.65;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .msg.user .bubble {
+      background: #3b5bdb;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant .bubble {
+      background: #f1f1ef;
+      color: #1c1c1a;
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .msg.user .msg-avatar {
+      background: #dbe4ff;
+      color: #3b5bdb;
+    }
+
+    .msg.assistant .msg-avatar {
+      background: #f1f1ef;
+      border: 1px solid #e5e5e3;
+    }
+
+    .msg.assistant .msg-avatar svg {
+      width: 14px;
+      height: 14px;
+      color: #666;
+    }
+
+    /* Typing indicator */
+    .typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #aaa;
+      animation: blink 1.2s infinite;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes blink {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.3
+      }
+
+      40% {
+        opacity: 1
+      }
+    }
+
+    /* File chips */
+    #file-preview {
+      padding: 8px 18px;
+      border-top: 1px solid #e5e5e3;
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .file-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f1ef;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .file-chip svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .file-chip button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #999;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    /* Input area */
+    #input-area {
+      padding: 12px 18px;
+      border-top: 1px solid #e5e5e3;
+    }
+
+    #input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    #input-box {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      min-height: 42px;
+      max-height: 120px;
+      color: #1c1c1a;
+      outline: none;
+      line-height: 1.5;
+      background: #fff;
+    }
+
+    #input-box:focus {
+      border-color: #adb5bd;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover {
+      background: #f5f5f4;
+    }
+
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+      color: #666;
+    }
+
+    #send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: none;
+      background: #3b5bdb;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #send-btn:hover {
+      background: #364fc7;
+    }
+
+    #send-btn:disabled {
+      background: #c5cce8;
+      cursor: default;
+    }
+
+    #send-btn svg {
+      width: 16px;
+      height: 16px;
+      color: #fff;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    #hint {
+      font-size: 11px;
+      color: #bbb;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app">
+
+    <div id="header">
+      <div id="header-left">
+        <div id="avatar">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="8" cy="6" r="3" />
+            <path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" />
+          </svg>
+        </div>
+        <div>
+          <div id="header-title">Personal assistant</div>
+          <div id="header-sub">Multi-provider AI</div>
+        </div>
+      </div>
+      <button id="clear-btn">Clear chat</button>
+    </div>
+
+    <div id="api-banner">
+      <span>🔑</span>
+      <select id="provider-select">
+        <option value="openai">OpenAI</option>
+        <option value="claude">Claude</option>
+        <option value="gemini">Gemini</option>
+        <option value="groq">Groq</option>
+        <option value="mistral">Mistral</option>
+      </select>
+      <input type="password" id="api-key-input" placeholder="Paste your API key">
+      <button id="save-key-btn">Save</button>
+    </div>
+
+    <div id="messages">
+      <div class="sys-msg">Today</div>
+      <div class="msg assistant">
+        <div class="msg-avatar">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="8" cy="6" r="3" />
+            <path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" />
+          </svg>
+        </div>
+        <div class="bubble">Hi! I'm your personal assistant. Ask me anything, or attach a file (PDF, image, or text) and
+          I'll read it for you.</div>
+      </div>
+    </div>
+
+    <div id="file-preview"></div>
+
+    <div id="input-area">
+      <div id="input-row">
+        <button class="icon-btn" id="attach-btn" title="Attach file">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M13.5 7.5l-6 6a3.5 3.5 0 01-4.95-4.95l6-6a2 2 0 012.83 2.83l-6.01 6a.5.5 0 01-.7-.7l5.5-5.5" />
+          </svg>
+        </button>
+        <textarea id="input-box" placeholder="Message your assistant…" rows="1"></textarea>
+        <button id="send-btn" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M14 2L7 9M14 2L9 14l-2-5-5-2 12-5z" />
+          </svg>
+        </button>
+      </div>
+      <div id="hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+
+    <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.gif,.webp">
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputBox = document.getElementById('input-box');
+    const sendBtn = document.getElementById('send-btn');
+    const attachBtn = document.getElementById('attach-btn');
+    const fileInput = document.getElementById('file-input');
+    const filePreview = document.getElementById('file-preview');
+    const clearBtn = document.getElementById('clear-btn');
+    const apiBanner = document.getElementById('api-banner');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const saveKeyBtn = document.getElementById('save-key-btn');
+    const providerSelect = document.getElementById('provider-select');
+
+    let history = [];
+    let pendingFiles = [];
+    let isLoading = false;
+    let apiKey = localStorage.getItem('chat_api_key') || '';
+    let provider = localStorage.getItem('chat_provider') || 'openai';
+    providerSelect.value = provider;
+
+    if (apiKey) apiBanner.classList.add('hidden');
+
+    const PROVIDER_PLACEHOLDERS = {
+      openai: 'Paste your OpenAI API key (sk-...)',
+      claude: 'Paste your Anthropic API key (sk-ant-...)',
+      gemini: 'Paste your Gemini API key',
+      groq: 'Paste your Groq API key (gsk_...)',
+      mistral: 'Paste your Mistral API key'
+    };
+    apiKeyInput.placeholder = PROVIDER_PLACEHOLDERS[provider] || 'Paste your API key';
+
+    providerSelect.addEventListener('change', () => {
+      provider = providerSelect.value;
+      localStorage.setItem('chat_provider', provider);
+      apiKeyInput.placeholder = PROVIDER_PLACEHOLDERS[provider] || 'Paste your API key';
+      document.getElementById('header-sub').textContent = 'Powered by ' + providerSelect.selectedOptions[0].text;
+    });
+
+    saveKeyBtn.addEventListener('click', () => {
+      const val = apiKeyInput.value.trim();
+      if (!val) { alert('Please enter an API key.'); return; }
+      apiKey = val;
+      provider = providerSelect.value;
+      localStorage.setItem('chat_api_key', apiKey);
+      localStorage.setItem('chat_provider', provider);
+      apiBanner.classList.add('hidden');
+      document.getElementById('header-sub').textContent = 'Powered by ' + providerSelect.selectedOptions[0].text;
+    });
+
+    inputBox.addEventListener('input', () => {
+      sendBtn.disabled = (inputBox.value.trim() === '' && pendingFiles.length === 0) || isLoading;
+      inputBox.style.height = 'auto';
+      inputBox.style.height = Math.min(inputBox.scrollHeight, 120) + 'px';
+    });
+
+    inputBox.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!sendBtn.disabled) sendMessage(); }
+    });
+
+    attachBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      Array.from(fileInput.files).forEach(f => pendingFiles.push(f));
+      fileInput.value = '';
+      renderFileChips();
+      sendBtn.disabled = (inputBox.value.trim() === '' && pendingFiles.length === 0) || isLoading;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      history = [];
+      messagesEl.innerHTML = '<div class="sys-msg">Chat cleared</div>';
+      addBubble('assistant', 'Chat cleared! How can I help you?');
+    });
+
+    function renderFileChips() {
+      if (pendingFiles.length === 0) { filePreview.style.display = 'none'; return; }
+      filePreview.style.display = 'flex';
+      filePreview.innerHTML = pendingFiles.map((f, i) => `
+      <div class="file-chip">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M7 1H3a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V4L7 1z"/>
+          <path d="M7 1v3h3"/>
+        </svg>
+        ${escapeHTML(f.name)}
+        <button onclick="removeFile(${i})">×</button>
+      </div>`).join('');
+    }
+
+    window.removeFile = (i) => {
+      pendingFiles.splice(i, 1);
+      renderFileChips();
+      sendBtn.disabled = (inputBox.value.trim() === '' && pendingFiles.length === 0) || isLoading;
+    };
+
+    function escapeHTML(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function addBubble(role, text) {
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      const avatarHTML = role === 'user'
+        ? `<div class="msg-avatar">You</div>`
+        : `<div class="msg-avatar"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg></div>`;
+      div.innerHTML = `${avatarHTML}<div class="bubble"></div>`;
+      div.querySelector('.bubble').textContent = text;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return div.querySelector('.bubble');
+    }
+
+    function addTyping() {
+      const div = document.createElement('div');
+      div.className = 'msg assistant';
+      div.id = 'typing-indicator';
+      div.innerHTML = `<div class="msg-avatar"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg></div><div class="bubble"><div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    async function fileToContent(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        if (file.type.startsWith('image/')) {
+          reader.onload = () => resolve({ type: 'image', source: { type: 'base64', media_type: file.type, data: reader.result.split(',')[1] } });
+          reader.readAsDataURL(file);
+        } else if (file.type === 'application/pdf') {
+          reader.onload = () => resolve({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: reader.result.split(',')[1] } });
+          reader.readAsDataURL(file);
+        } else {
+          reader.onload = () => resolve({ type: 'text', text: `[File: ${file.name}]\n${reader.result}` });
+          reader.readAsText(file);
+        }
+        reader.onerror = reject;
+      });
+    }
+
+    /* ---- Provider configurations ---- */
+    const PROVIDERS = {
+      openai: {
+        url: 'https://api.openai.com/v1/chat/completions',
+        model: 'gpt-4o',
+        headers: () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey }),
+        body: (msgs, sys) => JSON.stringify({ model: 'gpt-4o', max_tokens: 1024, messages: [{ role: 'system', content: sys }, ...msgs.map(m => openAIMsg(m))] }),
+        parse: (data) => ({ error: data.error?.message, text: data.choices?.[0]?.message?.content })
+      },
+      claude: {
+        url: 'https://api.anthropic.com/v1/messages',
+        model: 'claude-sonnet-4-20250514',
+        headers: () => ({ 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-client': 'true' }),
+        body: (msgs, sys) => JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, system: sys, messages: msgs }),
+        parse: (data) => ({ error: data.error?.message, text: data.content?.find(b => b.type === 'text')?.text })
+      },
+      gemini: {
+        url: () => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+        headers: () => ({ 'Content-Type': 'application/json' }),
+        body: (msgs, sys) => JSON.stringify({ system_instruction: { parts: [{ text: sys }] }, contents: msgs.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: typeof m.content === 'string' ? m.content : m.content.map(p => p.text || '').join('\n') }] })) }),
+        parse: (data) => ({ error: data.error?.message, text: data.candidates?.[0]?.content?.parts?.[0]?.text })
+      },
+      groq: {
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        model: 'llama-3.3-70b-versatile',
+        headers: () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey }),
+        body: (msgs, sys) => JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 1024, messages: [{ role: 'system', content: sys }, ...msgs.map(m => openAIMsg(m))] }),
+        parse: (data) => ({ error: data.error?.message, text: data.choices?.[0]?.message?.content })
+      },
+      mistral: {
+        url: 'https://api.mistral.ai/v1/chat/completions',
+        model: 'mistral-small-latest',
+        headers: () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey }),
+        body: (msgs, sys) => JSON.stringify({ model: 'mistral-small-latest', max_tokens: 1024, messages: [{ role: 'system', content: sys }, ...msgs.map(m => openAIMsg(m))] }),
+        parse: (data) => ({ error: data.error?.message, text: data.choices?.[0]?.message?.content })
+      }
+    };
+
+    /** Convert a message to OpenAI-compatible format (used by OpenAI, Groq, Mistral) */
+    function openAIMsg(m) {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content };
+      // Flatten content parts to text-only for OpenAI-compatible APIs
+      const parts = m.content.map(p => {
+        if (p.type === 'text') return { type: 'text', text: p.text };
+        if (p.type === 'image') return { type: 'image_url', image_url: { url: 'data:' + p.source.media_type + ';base64,' + p.source.data } };
+        return { type: 'text', text: '[Attached file]' };
+      });
+      return { role: m.role, content: parts };
+    }
+
+    const SYSTEM_PROMPT = 'You are a helpful, friendly personal assistant. Be concise and clear. When files are shared, analyze them and respond helpfully.';
+
+    async function sendMessage() {
+      if (!apiKey) { alert('Please enter your API key first.'); apiBanner.classList.remove('hidden'); return; }
+      const text = inputBox.value.trim();
+      const files = [...pendingFiles];
+      if ((!text && files.length === 0) || isLoading) return;
+
+      isLoading = true;
+      sendBtn.disabled = true;
+      inputBox.value = '';
+      inputBox.style.height = 'auto';
+      pendingFiles = [];
+      renderFileChips();
+
+      addBubble('user', text + (files.length ? '\n📎 ' + files.map(f => f.name).join(', ') : ''));
+
+      const contentParts = [];
+      for (const f of files) {
+        try { contentParts.push(await fileToContent(f)); } catch (e) { console.error(e); }
+      }
+      if (text) contentParts.push({ type: 'text', text });
+
+      history.push({
+        role: 'user',
+        content: contentParts.length === 1 && contentParts[0].type === 'text' ? contentParts[0].text : contentParts
+      });
+
+      addTyping();
+
+      try {
+        const cfg = PROVIDERS[provider];
+        const url = typeof cfg.url === 'function' ? cfg.url() : cfg.url;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: cfg.headers(),
+          body: cfg.body(history, SYSTEM_PROMPT)
+        });
+
+        const data = await res.json();
+        removeTyping();
+
+        const result = cfg.parse(data);
+        if (result.error) {
+          addBubble('assistant', 'API error: ' + result.error);
+          history.pop();
+        } else {
+          const reply = result.text || 'No response.';
+          history.push({ role: 'assistant', content: reply });
+          addBubble('assistant', reply);
+        }
+      } catch (err) {
+        removeTyping();
+        addBubble('assistant', 'Network error — check your connection and try again.');
+        history.pop();
+      }
+
+      isLoading = false;
+      sendBtn.disabled = inputBox.value.trim() === '' && pendingFiles.length === 0;
+      inputBox.focus();
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+  </script>
+
+</body>
+
+</html>
